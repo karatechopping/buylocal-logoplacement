@@ -428,6 +428,7 @@ def analyze_placement():
         # Check if user wants the output image and S3 upload preference
         return_image = data.get('return_image', True)  # Default to True now
         upload_to_s3 = data.get('upload_to_s3', True)
+        print(f"DEBUG: return_image={return_image}, upload_to_s3={upload_to_s3}")
         
         result = analyzer.analyze_placement(
             data['image_url'],
