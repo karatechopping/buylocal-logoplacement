@@ -285,19 +285,96 @@ class LogoPlacementAnalyzer:
     def get_logo_dimensions(self, dark_logo_url, light_logo_url):
         """Get actual logo dimensions from one of the logo URLs"""
         try:
-            # Try dark logo first
-            logo_image = self.download_image(dark_logo_url)
-            h, w = logo_image.shape[:2]
-            return w, h
+            # Try dark logo first if available
+            if dark_logo_url:
+                logo_image = self.download_image(dark_logo_url)
+                h, w = logo_image.shape[:2]
+                return w, h
         except:
-            try:
-                # Fallback to light logo
+            pass
+            
+        try:
+            # Fallback to light logo if available
+            if light_logo_url:
                 logo_image = self.download_image(light_logo_url)
                 h, w = logo_image.shape[:2]
                 return w, h
-            except:
-                # Ultimate fallback to default
-                return 100, 50
+        except:
+            pass
+            
+        # Ultimate fallback to default
+        return 100, 50
+    
+    def analyze_placement_only(self, image_url):
+        """Analyze placement without logos - just return best corner"""
+        try:
+            # Download and process image
+            image = self.download_image(image_url)
+            h, w = image.shape[:2]
+            
+            # Use default logo dimensions for analysis
+            logo_width, logo_height = 100, 50
+            
+            # Analyze all corners
+            corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
+            all_corner_results = []
+            
+            for corner in corners:
+                corner_result = self.analyze_corner_space(image, corner, logo_width, logo_height)
+                if corner_result:
+                    # Add bias for corners (bottom-right most preferred)
+                    if corner == 'bottom-right':
+                        corner_result['suitability'] *= 1.25  # 25% bonus for bottom-right
+                    elif corner == 'bottom-left':
+                        corner_result['suitability'] *= 1.15  # 15% bonus for bottom-left
+                    elif corner == 'top-right':
+                        corner_result['suitability'] *= 1.05  # 5% bonus for top-right
+                    
+                    all_corner_results.append(corner_result)
+            
+            # Sort by suitability
+            all_corner_results.sort(key=lambda x: x['suitability'], reverse=True)
+            best_corner = all_corner_results[0] if all_corner_results else None
+            
+            # Base response structure
+            result = {
+                'status': 'failed',
+                'reason': None,
+                'placement': None,
+                'selected_logo': None
+            }
+            
+            if not best_corner:
+                result['reason'] = 'No corners found suitable for logo placement'
+                return result
+            
+            if not best_corner['space_sufficient']:
+                result['reason'] = f"Insufficient space in best corner ({best_corner['corner']}). Available: {best_corner['available_width']}x{best_corner['available_height']}, Required: {logo_width}x{logo_height}"
+                return result
+            
+            if best_corner['suitability'] < 0.3:  # Low confidence threshold
+                result['reason'] = f"Low placement confidence ({best_corner['suitability']:.2f}) in best corner ({best_corner['corner']}). May have text or visual conflicts."
+                return result
+            
+            # Success case
+            result['status'] = 'successful'
+            result['placement'] = {
+                'corner': best_corner['corner'],
+                'x': best_corner['placement_x'],
+                'y': best_corner['placement_y'],
+                'width': logo_width,
+                'height': logo_height
+            }
+            
+            return result
+            
+        except Exception as e:
+            return {
+                'status': 'failed',
+                'reason': f'Processing error: {str(e)}',
+                'placement': None,
+                'selected_logo': None
+            }
     
     def analyze_placement(self, image_url, dark_logo_url, light_logo_url, return_image=True, upload_to_s3=True, delete_original=True):
         """Main analysis function"""
@@ -357,16 +434,23 @@ class LogoPlacementAnalyzer:
             # Success case
             result['status'] = 'successful'
             
-            # Select logo variant
-            logo_selection = self.select_logo_variant(
-                image,
-                best_corner['placement_x'],
-                best_corner['placement_y'],
-                logo_width,
-                logo_height
-            )
-            
-            selected_logo_url = dark_logo_url if logo_selection['use_dark_logo'] else light_logo_url
+            # Select logo variant based on available logos
+            if dark_logo_url and light_logo_url:
+                # Both logos available - choose based on contrast
+                logo_selection = self.select_logo_variant(
+                    image,
+                    best_corner['placement_x'],
+                    best_corner['placement_y'],
+                    logo_width,
+                    logo_height
+                )
+                selected_logo_url = dark_logo_url if logo_selection['use_dark_logo'] else light_logo_url
+            elif dark_logo_url:
+                # Only dark logo available
+                selected_logo_url = dark_logo_url
+            else:
+                # Only light logo available  
+                selected_logo_url = light_logo_url
             
             # Update result with success data
             result.update({
@@ -440,10 +524,21 @@ def analyze_placement():
         if not data:
             return jsonify({'error': 'No JSON data provided'}), 400
         
-        required_fields = ['image_url', 'dark_logo_url', 'light_logo_url']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
+        # Check required fields - image_url is always required
+        if 'image_url' not in data:
+            return jsonify({'error': 'Missing required field: image_url'}), 400
+        
+        # At least one logo URL must be provided
+        dark_logo_url = data.get('dark_logo_url')
+        light_logo_url = data.get('light_logo_url')
+        
+        # Special case: no logos provided - just return placement analysis
+        if not dark_logo_url and not light_logo_url:
+            # Just analyze placement without logos
+            result = analyzer.analyze_placement_only(data['image_url'])
+            result['output_image'] = data['image_url']  # Return same filename
+            result['original_deleted'] = False  # Never delete original
+            return jsonify(result), 200 if result['status'] == 'successful' else 400
         
         # Check if user wants the output image and S3 upload preference
         return_image = data.get('return_image', True)  # Default to True as promised
@@ -452,8 +547,8 @@ def analyze_placement():
         
         result = analyzer.analyze_placement(
             data['image_url'],
-            data['dark_logo_url'],
-            data['light_logo_url'],
+            dark_logo_url,
+            light_logo_url,
             return_image,
             upload_to_s3,
             delete_original
