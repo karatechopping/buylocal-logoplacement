@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=ubuntu
+User=root
 WorkingDirectory=/opt/buylocal-logoplacement
 Environment=PATH=/opt/buylocal-logoplacement/venv/bin
 ExecStart=/opt/buylocal-logoplacement/venv/bin/python app.py

@@ -4,7 +4,7 @@
 set -e  # Exit on any error
 
 # Configuration
-DEPLOY_USER="ubuntu"
+DEPLOY_USER=$(whoami)
 DEPLOY_PATH="/opt/buylocal-logoplacement"
 SERVICE_NAME="logo-analyzer"
 
