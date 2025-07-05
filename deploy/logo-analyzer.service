@@ -1,0 +1,15 @@
+[Unit]
+Description=Logo Placement Analyzer
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/buylocal-logoplacement
+Environment=PATH=/opt/buylocal-logoplacement/venv/bin
+ExecStart=/opt/buylocal-logoplacement/venv/bin/python app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
