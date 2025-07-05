@@ -281,7 +281,7 @@ class LogoPlacementAnalyzer:
                 # Ultimate fallback to default
                 return 100, 50
     
-    def analyze_placement(self, image_url, dark_logo_url, light_logo_url, return_image=False):
+    def analyze_placement(self, image_url, dark_logo_url, light_logo_url, return_image=True, upload_to_s3=True):
         """Main analysis function"""
         try:
             # Download and process image
@@ -369,12 +369,20 @@ class LogoPlacementAnalyzer:
                     logo_width, logo_height
                 )
                 
-                # Try to upload to S3 first
-                s3_url = self.upload_to_s3(composite, image_url)
-                if s3_url:
-                    result['output_image'] = s3_url
+                # Handle S3 vs local storage based on preference
+                if upload_to_s3:
+                    s3_url = self.upload_to_s3(composite, image_url)
+                    if s3_url:
+                        result['output_image'] = s3_url
+                    else:
+                        # S3 failed, fallback to local file
+                        output_filename = f"output_{uuid.uuid4().hex[:8]}.png"
+                        output_path = os.path.join("outputs", output_filename)
+                        os.makedirs("outputs", exist_ok=True)
+                        cv2.imwrite(output_path, composite)
+                        result['output_image'] = output_path
                 else:
-                    # Fallback to local file
+                    # Force local storage
                     output_filename = f"output_{uuid.uuid4().hex[:8]}.png"
                     output_path = os.path.join("outputs", output_filename)
                     os.makedirs("outputs", exist_ok=True)
@@ -408,14 +416,16 @@ def analyze_placement():
             if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
         
-        # Check if user wants the output image
-        return_image = data.get('return_image', False)
+        # Check if user wants the output image and S3 upload preference
+        return_image = data.get('return_image', True)  # Default to True now
+        upload_to_s3 = data.get('upload_to_s3', True)
         
         result = analyzer.analyze_placement(
             data['image_url'],
             data['dark_logo_url'],
             data['light_logo_url'],
-            return_image
+            return_image,
+            upload_to_s3
         )
         
         # Return appropriate HTTP status based on analysis result
