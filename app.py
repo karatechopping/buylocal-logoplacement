@@ -5,6 +5,8 @@ from PIL import Image
 import requests
 import io
 import pytesseract
+# Set tesseract path for systemd environment
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
 from urllib.parse import urlparse
 import logging
 import os
@@ -305,7 +307,7 @@ class LogoPlacementAnalyzer:
                         corner_result['suitability'] *= 1.15  # 15% bonus for bottom-left
                     elif corner == 'top-right':
                         corner_result['suitability'] *= 1.05  # 5% bonus for top-right
-                    # top-left gets no bonus
+                    
                     all_corner_results.append(corner_result)
             
             # Sort by suitability
@@ -361,7 +363,6 @@ class LogoPlacementAnalyzer:
             
             # Create composite image if requested
             if return_image:
-                print(f"DEBUG: Creating composite image...")
                 composite = self.create_logo_composite(
                     image, 
                     selected_logo_url,
@@ -372,31 +373,23 @@ class LogoPlacementAnalyzer:
                 
                 # Handle S3 vs local storage based on preference
                 if upload_to_s3:
-                    print(f"DEBUG: Attempting S3 upload...")
                     s3_url = self.upload_to_s3(composite, image_url)
                     if s3_url:
-                        print(f"DEBUG: S3 upload successful: {s3_url}")
                         result['output_image'] = s3_url
                     else:
-                        print(f"DEBUG: S3 upload failed, falling back to local...")
                         # S3 failed, fallback to local file
                         output_filename = f"output_{uuid.uuid4().hex[:8]}.png"
                         output_path = os.path.join("outputs", output_filename)
                         os.makedirs("outputs", exist_ok=True)
                         cv2.imwrite(output_path, composite)
-                        print(f"DEBUG: Local file saved: {output_path}")
                         result['output_image'] = output_path
                 else:
-                    print(f"DEBUG: Force local storage...")
                     # Force local storage
                     output_filename = f"output_{uuid.uuid4().hex[:8]}.png"
                     output_path = os.path.join("outputs", output_filename)
                     os.makedirs("outputs", exist_ok=True)
                     cv2.imwrite(output_path, composite)
-                    print(f"DEBUG: Local file saved: {output_path}")
                     result['output_image'] = output_path
-            else:
-                print(f"DEBUG: return_image=False, skipping image creation")
             
             return result
             

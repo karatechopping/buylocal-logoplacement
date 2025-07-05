@@ -56,18 +56,12 @@ curl -X POST http://localhost:5001/analyze-placement \
 # Test with local storage only
 curl -X POST http://localhost:5001/analyze-placement \
   -H "Content-Type: application/json" \
-  -d '{"image_url":"https://buylocalnz.s3.amazonaws.com/QNTM/SMPostImages/bk-test-1751683140376.png","dark_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogoblack.png","light_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntml
-
-.png","upload_to_s3":false}'
+  -d '{"image_url":"https://buylocalnz.s3.amazonaws.com/QNTM/SMPostImages/bk-test-1751683140376.png","dark_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogoblack.png","light_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogo.png","upload_to_s3":false}'
 
 # Test analysis only (no image creation)
 curl -X POST http://localhost:5001/analyze-placement \
   -H "Content-Type: application/json" \
-  -d '{"image_url":"https://buylocalnz.s3.amazonaws.com/QNTM/SMPostImages/bk-test-1751683140376.png","dark_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntml
-
-black.png","light_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntml
-
-.png","return_image":false}'
+  -d '{"image_url":"https://buylocalnz.s3.amazonaws.com/QNTM/SMPostImages/bk-test-1751683140376.png","dark_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogoblack.png","light_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogo.png","return_image":false}'
 ```
 
 ### Testing and Utilities
