@@ -281,7 +281,7 @@ class LogoPlacementAnalyzer:
                 # Ultimate fallback to default
                 return 100, 50
     
-    def analyze_placement(self, image_url, dark_logo_url, light_logo_url, return_image=False):
+    def analyze_placement(self, image_url, dark_logo_url, light_logo_url, upload_to_s3=True):
         """Main analysis function"""
         try:
             # Download and process image
@@ -354,27 +354,34 @@ class LogoPlacementAnalyzer:
                 'selected_logo': selected_logo_url
             })
             
-            # Create composite image if requested
-            if return_image:
-                composite = self.create_logo_composite(
-                    image, 
-                    selected_logo_url,
-                    best_corner['placement_x'],
-                    best_corner['placement_y'],
-                    logo_width, logo_height
-                )
-                
-                # Try to upload to S3 first
+            # Always create composite image
+            composite = self.create_logo_composite(
+                image, 
+                selected_logo_url,
+                best_corner['placement_x'],
+                best_corner['placement_y'],
+                logo_width, logo_height
+            )
+            
+            # Upload to S3 or save locally based on parameter
+            if upload_to_s3:
                 s3_url = self.upload_to_s3(composite, image_url)
                 if s3_url:
                     result['output_image'] = s3_url
                 else:
-                    # Fallback to local file
+                    # S3 failed, fallback to local
                     output_filename = f"output_{uuid.uuid4().hex[:8]}.png"
                     output_path = os.path.join("outputs", output_filename)
                     os.makedirs("outputs", exist_ok=True)
                     cv2.imwrite(output_path, composite)
                     result['output_image'] = output_path
+            else:
+                # Force local storage
+                output_filename = f"output_{uuid.uuid4().hex[:8]}.png"
+                output_path = os.path.join("outputs", output_filename)
+                os.makedirs("outputs", exist_ok=True)
+                cv2.imwrite(output_path, composite)
+                result['output_image'] = output_path
             
             return result
             
@@ -403,14 +410,14 @@ def analyze_placement():
             if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
         
-        # Check if user wants the output image
-        return_image = data.get('return_image', False)
+        # Check if user wants S3 upload (default true)
+        upload_to_s3 = data.get('upload_to_s3', True)
         
         result = analyzer.analyze_placement(
             data['image_url'],
             data['dark_logo_url'],
             data['light_logo_url'],
-            return_image
+            upload_to_s3
         )
         
         # Return appropriate HTTP status based on analysis result
