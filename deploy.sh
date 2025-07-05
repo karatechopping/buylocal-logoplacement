@@ -10,6 +10,12 @@ SERVICE_NAME="logo-analyzer"
 
 echo "🚀 Starting deployment..."
 
+# Install system dependencies
+echo "📦 Installing system dependencies..."
+sudo add-apt-repository ppa:alex-p/tesseract-ocr-devel -y
+sudo apt update
+sudo apt install -y tesseract-ocr
+
 # Stop service if running
 sudo systemctl stop $SERVICE_NAME 2>/dev/null || true
 
