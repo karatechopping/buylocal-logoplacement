@@ -266,6 +266,18 @@ class LogoPlacementAnalyzer:
             print(f"S3 upload error: {e}")
             return None
     
+    def delete_original_s3_image(self, s3_url):
+        """Delete the original S3 image"""
+        try:
+            bucket, key = self.parse_s3_url(s3_url)
+            if bucket and key:
+                self.s3_client.delete_object(Bucket=bucket, Key=key)
+                print(f"Deleted original S3 image: {s3_url}")
+        except (NoCredentialsError, ClientError) as e:
+            print(f"S3 delete error: {e}")
+        except Exception as e:
+            print(f"Error deleting original image: {e}")
+    
     def get_logo_dimensions(self, dark_logo_url, light_logo_url):
         """Get actual logo dimensions from one of the logo URLs"""
         try:
@@ -283,7 +295,7 @@ class LogoPlacementAnalyzer:
                 # Ultimate fallback to default
                 return 100, 50
     
-    def analyze_placement(self, image_url, dark_logo_url, light_logo_url, return_image=True, upload_to_s3=True):
+    def analyze_placement(self, image_url, dark_logo_url, light_logo_url, return_image=True, upload_to_s3=True, delete_original=True):
         """Main analysis function"""
         try:
             # Download and process image
@@ -391,6 +403,10 @@ class LogoPlacementAnalyzer:
                     cv2.imwrite(output_path, composite)
                     result['output_image'] = output_path
             
+            # Delete original S3 image if requested
+            if delete_original and result['status'] == 'successful':
+                self.delete_original_s3_image(image_url)
+            
             return result
             
         except Exception as e:
@@ -421,13 +437,15 @@ def analyze_placement():
         # Check if user wants the output image and S3 upload preference
         return_image = data.get('return_image', True)  # Default to True as promised
         upload_to_s3 = data.get('upload_to_s3', True)
+        delete_original = data.get('delete_original', True)  # Default to True
         
         result = analyzer.analyze_placement(
             data['image_url'],
             data['dark_logo_url'],
             data['light_logo_url'],
             return_image,
-            upload_to_s3
+            upload_to_s3,
+            delete_original
         )
         
         # Return appropriate HTTP status based on analysis result

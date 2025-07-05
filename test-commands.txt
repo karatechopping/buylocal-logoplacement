@@ -22,3 +22,8 @@ curl -X POST http://localhost:5001/analyze-placement \
 black.png","light_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntml
 
 .png","return_image":false}'
+
+# Test without deleting original
+curl -X POST http://localhost:5001/analyze-placement \
+  -H "Content-Type: application/json" \
+  -d '{"image_url":"https://buylocalnz.s3.amazonaws.com/QNTM/SMPostImages/bk-test-1751683140376.png","dark_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogoblack.png","light_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogo.png","delete_original":false}'
