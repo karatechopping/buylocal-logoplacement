@@ -43,4 +43,4 @@ echo "📊 Service status:"
 sudo systemctl status $SERVICE_NAME --no-pager
 
 echo "✅ Deployment complete!"
-echo "🌐 Service running on http://$(curl -s ifconfig.me):5001"
+echo "🌐 Service running on http://$(curl -4 -s ifconfig.me):5001"
