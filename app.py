@@ -273,10 +273,14 @@ class LogoPlacementAnalyzer:
             if bucket and key:
                 self.s3_client.delete_object(Bucket=bucket, Key=key)
                 print(f"Deleted original S3 image: {s3_url}")
+                return True
+            return False
         except (NoCredentialsError, ClientError) as e:
             print(f"S3 delete error: {e}")
+            return False
         except Exception as e:
             print(f"Error deleting original image: {e}")
+            return False
     
     def get_logo_dimensions(self, dark_logo_url, light_logo_url):
         """Get actual logo dimensions from one of the logo URLs"""
@@ -337,14 +341,17 @@ class LogoPlacementAnalyzer:
             
             if not best_corner:
                 result['reason'] = 'No corners found suitable for logo placement'
+                result['original_deleted'] = False
                 return result
             
             if not best_corner['space_sufficient']:
                 result['reason'] = f"Insufficient space in best corner ({best_corner['corner']}). Available: {best_corner['available_width']}x{best_corner['available_height']}, Required: {logo_width}x{logo_height}"
+                result['original_deleted'] = False
                 return result
             
             if best_corner['suitability'] < 0.3:  # Low confidence threshold
                 result['reason'] = f"Low placement confidence ({best_corner['suitability']:.2f}) in best corner ({best_corner['corner']}). May have text or visual conflicts."
+                result['original_deleted'] = False
                 return result
             
             # Success case
@@ -405,7 +412,10 @@ class LogoPlacementAnalyzer:
             
             # Delete original S3 image if requested
             if delete_original and result['status'] == 'successful':
-                self.delete_original_s3_image(image_url)
+                deleted = self.delete_original_s3_image(image_url)
+                result['original_deleted'] = deleted
+            else:
+                result['original_deleted'] = False
             
             return result
             
@@ -415,7 +425,8 @@ class LogoPlacementAnalyzer:
                 'reason': f'Processing error: {str(e)}',
                 'placement': None,
                 'selected_logo': None,
-                'output_image': None
+                'output_image': None,
+                'original_deleted': False
             }
 
 analyzer = LogoPlacementAnalyzer()

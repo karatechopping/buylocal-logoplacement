@@ -62,6 +62,11 @@ curl -X POST http://localhost:5001/analyze-placement \
 curl -X POST http://localhost:5001/analyze-placement \
   -H "Content-Type: application/json" \
   -d '{"image_url":"https://buylocalnz.s3.amazonaws.com/QNTM/SMPostImages/bk-test-1751683140376.png","dark_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogoblack.png","light_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogo.png","return_image":false}'
+
+# Test without deleting original
+curl -X POST http://localhost:5001/analyze-placement \
+  -H "Content-Type: application/json" \
+  -d '{"image_url":"https://buylocalnz.s3.amazonaws.com/QNTM/SMPostImages/bk-test-1751683140376.png","dark_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogoblack.png","light_logo_url":"https://buylocalnz.s3.amazonaws.com/QNTM/Logos/qntmlogo.png","delete_original":false}'
 ```
 
 ### Testing and Utilities
@@ -98,6 +103,7 @@ python test_api.py
 **S3 Integration**
 - Parses S3 URLs to extract bucket and key
 - Uploads composite images with `-logo` suffix to same location as original
+- Optionally deletes original images after successful processing (default: true)
 - Falls back to local file storage if S3 upload fails
 
 ### API Response Format
@@ -113,7 +119,8 @@ python test_api.py
     "width": 150, "height": 150
   },
   "selected_logo": "https://example.com/logo-light.png",
-  "output_image": "https://bucket.s3.amazonaws.com/path/image-logo.png"
+  "output_image": "https://bucket.s3.amazonaws.com/path/image-logo.png",
+  "original_deleted": true
 }
 ```
 
@@ -124,7 +131,8 @@ python test_api.py
   "reason": "Insufficient space in best corner (top-right). Available: 100x80, Required: 150x150",
   "placement": null,
   "selected_logo": null,
-  "output_image": null
+  "output_image": null,
+  "original_deleted": false
 }
 ```
 
