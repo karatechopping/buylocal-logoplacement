@@ -281,7 +281,7 @@ class LogoPlacementAnalyzer:
                 # Ultimate fallback to default
                 return 100, 50
     
-    def analyze_placement(self, image_url, dark_logo_url, light_logo_url, return_image=True, upload_to_s3=True):
+    def analyze_placement(self, image_url, dark_logo_url, light_logo_url, return_image=False, upload_to_s3=True):
         """Main analysis function"""
         try:
             # Download and process image
@@ -426,9 +426,8 @@ def analyze_placement():
                 return jsonify({'error': f'Missing required field: {field}'}), 400
         
         # Check if user wants the output image and S3 upload preference
-        return_image = data.get('return_image', True)  # Default to True now
+        return_image = data.get('return_image', False)  # Keep original default
         upload_to_s3 = data.get('upload_to_s3', True)
-        print(f"DEBUG: return_image={return_image}, upload_to_s3={upload_to_s3}")
         
         result = analyzer.analyze_placement(
             data['image_url'],
