@@ -50,7 +50,9 @@ python app.py
 sudo ./deploy.sh
 ```
 
-**API Example:**
+**API Examples:**
+
+*Standard usage (both logos):*
 ```bash
 curl -X POST http://localhost:5001/analyze-placement \
   -H "Content-Type: application/json" \
@@ -61,16 +63,47 @@ curl -X POST http://localhost:5001/analyze-placement \
   }'
 ```
 
+*Single logo (always uses this logo):*
+```bash
+curl -X POST http://localhost:5001/analyze-placement \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "https://example.com/image.png",
+    "dark_logo_url": "https://example.com/logo-dark.png"
+  }'
+```
+
+*Placement analysis only (no logos):*
+```bash
+curl -X POST http://localhost:5001/analyze-placement \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "https://example.com/image.png"
+  }'
+```
+
+*Keep original file:*
+```bash
+curl -X POST http://localhost:5001/analyze-placement \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "https://example.com/image.png",
+    "dark_logo_url": "https://example.com/logo-dark.png",
+    "light_logo_url": "https://example.com/logo-light.png",
+    "delete_original": false
+  }'
+```
+
 ## API Reference
 
 ### POST /analyze-placement
 
 **Required Parameters:**
 - `image_url` - Source image URL (S3 supported)
-- `dark_logo_url` - Dark logo variant URL  
-- `light_logo_url` - Light logo variant URL
 
 **Optional Parameters:**
+- `dark_logo_url` - Dark logo variant URL (at least one logo URL required unless doing placement-only analysis)
+- `light_logo_url` - Light logo variant URL (at least one logo URL required unless doing placement-only analysis)
 - `return_image` - Create composite image (default: true)
 - `upload_to_s3` - Upload to S3 vs local storage (default: true)
 - `delete_original` - Delete original image after processing (default: true)
