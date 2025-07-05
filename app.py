@@ -298,9 +298,14 @@ class LogoPlacementAnalyzer:
             for corner in corners:
                 corner_result = self.analyze_corner_space(image, corner, logo_width, logo_height)
                 if corner_result:
-                    # Add bias for bottom corners
-                    if corner.startswith('bottom'):
-                        corner_result['suitability'] *= 1.15
+                    # Add bias for corners (bottom-right most preferred)
+                    if corner == 'bottom-right':
+                        corner_result['suitability'] *= 1.25  # 25% bonus for bottom-right
+                    elif corner == 'bottom-left':
+                        corner_result['suitability'] *= 1.15  # 15% bonus for bottom-left
+                    elif corner == 'top-right':
+                        corner_result['suitability'] *= 1.05  # 5% bonus for top-right
+                    # top-left gets no bonus
                     all_corner_results.append(corner_result)
             
             # Sort by suitability
